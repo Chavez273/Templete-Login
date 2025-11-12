@@ -3,15 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Registro de usario</title>
-
-    <!-- Google Font: Source Sans Pro -->
+    <title>Registro de usuario</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- icheck bootstrap -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
-    <!-- Theme style -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
 </head>
 <body class="hold-transition register-page">
@@ -35,10 +30,10 @@
                 </div>
             @endif
 
-            <form action="{{ route('register') }}" method="post">
+            <form action="{{ route('register.post') }}" method="post">
                 @csrf
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Full name" name="name" required>
+                    <input type="text" class="form-control" placeholder="Nombre completo" name="name" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
                             <span class="fas fa-user"></span>
@@ -54,7 +49,7 @@
                     </div>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="password" class="form-control" placeholder="Password" name="password" required>
+                    <input type="password" class="form-control" placeholder="Contraseña" name="password" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
                             <span class="fas fa-lock"></span>
@@ -62,7 +57,7 @@
                     </div>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="password" class="form-control" placeholder="Retype password" name="password_confirmation" required>
+                    <input type="password" class="form-control" placeholder="Confirmar contraseña" name="password_confirmation" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
                             <span class="fas fa-lock"></span>
@@ -70,46 +65,35 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-12">
+                    <div class="col-12 mb-3">
                         <div class="icheck-primary">
                             <input type="checkbox" id="agreeTerms" name="terms" value="agree">
-                            <label for="agreeTerms">
-                                Acpeto los <a href="#">terminos y condiciones</a>
-                            </label>
+                            <label for="agreeTerms">Acepto los <a href="#">términos y condiciones</a></label>
                         </div>
                     </div>
-                    <!-- /.col -->
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary btn-block">Registrarse</button>
                     </div>
-                    <!-- /.col -->
                 </div>
             </form>
 
-            <div class="social-auth-links text-center">
-                <p>-- O --</p>
-                <a href="#" class="btn btn-block btn-primary">
-                    <i class="fab fa-facebook mr-2"></i>
-                    Registarse con Facebook
+            <div class="social-auth-links text-center mt-3">
+                <p>- O -</p>
+                <a href="#" class="btn btn-block btn-primary mb-2">
+                    <i class="fab fa-facebook mr-2"></i> Registrarse con Facebook
                 </a>
                 <a href="#" class="btn btn-block btn-danger">
-                    <i class="fab fa-google mr-2"></i>
-                    Registrarse con Gmail
+                    <i class="fab fa-google mr-2"></i> Registrarse con Gmail
                 </a>
             </div>
 
             <a href="{{ route('login') }}" class="text-center">Ya tengo cuenta</a>
         </div>
-        <!-- /.form-box -->
-    </div><!-- /.card -->
+    </div>
 </div>
-<!-- /.register-box -->
 
-<!-- jQuery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 </body>
 </html>
