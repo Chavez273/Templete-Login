@@ -109,7 +109,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link">
+                                <a href="{{ route('api-tasks.index') }}" class="nav-link">
                                     <i class="fas fa-satellite-dish"></i>
                                     <p>Tareas API</p>
                                 </a>

@@ -1,9 +1,11 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{AuthController, TaskController};
+use App\Models\Task;
 
-Route::get('/', fn() => auth()->check()
+Route::get('/', fn() => auth::check()
     ? redirect()->route('dashboard')
     : redirect()->route('login')
 );
@@ -21,4 +23,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', fn() => view('welcome'))->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::resource('tasks', TaskController::class);
+
+    // Rutas para la interfaz de API (vistas)
+    Route::prefix('api-tasks')->name('api-tasks.')->group(function() {
+        Route::get('/', function() { return view('tasks-api.index'); })->name('index');
+        Route::get('/create', function() {return view('tasks-api.create');})->name('create');
+        Route::get('/{task}/edit', function(Task $task) {
+            return view('tasks-api.edit', compact('task'));
+        })->name('edit');
+    });
 });
+
+// ELIMINAR esta línea: require __DIR__.'/task_api_routes.php';

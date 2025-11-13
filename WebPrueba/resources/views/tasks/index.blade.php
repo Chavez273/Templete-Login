@@ -7,6 +7,26 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+    <style>
+        .pagination-custom .page-link {
+            color: #007bff;
+            border: 1px solid #dee2e6;
+        }
+        .pagination-custom .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .pagination-custom .page-link:hover {
+            color: #0056b3;
+            background-color: #e9ecef;
+        }
+        .table-actions {
+            white-space: nowrap;
+        }
+        .status-badge {
+            font-size: 0.85em;
+        }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
@@ -109,7 +129,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link">
+                                <a href="{{ route('api-tasks.index') }}" class="nav-link">
                                     <i class="fas fa-satellite-dish"></i>
                                     <p>Tareas API</p>
                                 </a>
@@ -158,28 +178,70 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Información de paginación -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="text-muted mb-0">
+                                    Mostrando
+                                    <strong>{{ $tasks->firstItem() ?? 0 }}</strong>
+                                    a
+                                    <strong>{{ $tasks->lastItem() ?? 0 }}</strong>
+                                    de
+                                    <strong>{{ $tasks->total() }}</strong>
+                                    tareas
+                                </p>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <div class="form-inline justify-content-end">
+                                    <label for="perPage" class="mr-2">Mostrar:</label>
+                                    <select class="form-control form-control-sm" id="perPage" onchange="changePerPage(this.value)">
+                                        <option value="5" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5</option>
+                                        <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                                        <option value="25" {{ request('per_page', 10) == 25 ? 'selected' : '' }}>25</option>
+                                        <option value="50" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
-                                <thead>
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead class="thead-dark">
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Título</th>
-                                        <th>Descripción</th>
-                                        <th>Fecha Vencimiento</th>
-                                        <th>Estado</th>
-                                        <th>Urgencia</th>
-                                        <th>Acciones</th>
+                                        <th style="width: 5%">ID</th>
+                                        <th style="width: 20%">Título</th>
+                                        <th style="width: 25%">Descripción</th>
+                                        <th style="width: 12%">Fecha Vencimiento</th>
+                                        <th style="width: 12%">Estado</th>
+                                        <th style="width: 12%">Urgencia</th>
+                                        <th style="width: 14%" class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse($tasks as $task)
                                         <tr>
-                                            <td>{{ $task->id }}</td>
+                                            <td><strong>{{ $task->id }}</strong></td>
                                             <td>{{ $task->title }}</td>
-                                            <td>{{ Str::limit($task->description, 50) }}</td>
-                                            <td>{{ $task->due_date?->format('d/m/Y') ?? 'N/A' }}</td>
                                             <td>
-                                                <span class="badge badge-@switch($task->status)
+                                                @if($task->description)
+                                                    <span title="{{ $task->description }}">
+                                                        {{ Str::limit($task->description, 50) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">Sin descripción</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($task->due_date)
+                                                    <span class="badge badge-light border">
+                                                        {{ $task->due_date->format('d/m/Y') }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted">N/A</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <span class="badge status-badge badge-@switch($task->status)
                                                     @case('pending')warning @break
                                                     @case('in_progress')info @break
                                                     @case('completed')success @break
@@ -188,7 +250,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="badge badge-@switch($task->urgency)
+                                                <span class="badge status-badge badge-@switch($task->urgency)
                                                     @case('Baja')success @break
                                                     @case('Media')warning @break
                                                     @case('Alta')danger @break
@@ -196,31 +258,87 @@
                                                     {{ $task->urgency_text }}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <a href="{{ route('tasks.edit', $task) }}" class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <form action="{{ route('tasks.destroy', $task) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro?')">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
+                                            <td class="table-actions text-center">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ route('tasks.edit', $task) }}" class="btn btn-warning" title="Editar">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <form action="{{ route('tasks.destroy', $task) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-danger" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar esta tarea?')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center">No hay tareas registradas.</td>
+                                            <td colspan="7" class="text-center py-4">
+                                                <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">No hay tareas registradas.</p>
+                                                <a href="{{ route('tasks.create') }}" class="btn btn-primary btn-sm mt-2">
+                                                    <i class="fas fa-plus"></i> Crear Primera Tarea
+                                                </a>
+                                            </td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
 
-                        <div class="d-flex justify-content-center mt-3">
-                            {{ $tasks->links() }}
+                        <!-- Paginación Mejorada -->
+                        @if($tasks->hasPages())
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <p class="text-muted">
+                                    Página <strong>{{ $tasks->currentPage() }}</strong>
+                                    de <strong>{{ $tasks->lastPage() }}</strong>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <nav aria-label="Page navigation" class="d-flex justify-content-end">
+                                    <ul class="pagination pagination-custom mb-0">
+                                        <!-- Primera página -->
+                                        <li class="page-item {{ $tasks->onFirstPage() ? 'disabled' : '' }}">
+                                            <a class="page-link" href="{{ $tasks->url(1) }}" aria-label="First">
+                                                <span aria-hidden="true">&laquo;&laquo;</span>
+                                            </a>
+                                        </li>
+
+                                        <!-- Página anterior -->
+                                        <li class="page-item {{ $tasks->onFirstPage() ? 'disabled' : '' }}">
+                                            <a class="page-link" href="{{ $tasks->previousPageUrl() }}" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+
+                                        <!-- Números de página -->
+                                        @foreach ($tasks->getUrlRange(max(1, $tasks->currentPage() - 2), min($tasks->lastPage(), $tasks->currentPage() + 2)) as $page => $url)
+                                            <li class="page-item {{ $page == $tasks->currentPage() ? 'active' : '' }}">
+                                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                            </li>
+                                        @endforeach
+
+                                        <!-- Página siguiente -->
+                                        <li class="page-item {{ $tasks->hasMorePages() ? '' : 'disabled' }}">
+                                            <a class="page-link" href="{{ $tasks->nextPageUrl() }}" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+
+                                        <!-- Última página -->
+                                        <li class="page-item {{ $tasks->currentPage() == $tasks->lastPage() ? 'disabled' : '' }}">
+                                            <a class="page-link" href="{{ $tasks->url($tasks->lastPage()) }}" aria-label="Last">
+                                                <span aria-hidden="true">&raquo;&raquo;</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -231,5 +349,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+<script>
+function changePerPage(value) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', value);
+    window.location.href = url.toString();
+}
+
+// Auto-ocultar alertas después de 5 segundos
+$(document).ready(function() {
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+
+    // Cerrar alerta al hacer click
+    $('.alert').click(function() {
+        $(this).fadeOut('slow');
+    });
+});
+</script>
 </body>
 </html>
