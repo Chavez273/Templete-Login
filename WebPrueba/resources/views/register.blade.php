@@ -19,6 +19,13 @@
         <div class="card-body register-card-body">
             <p class="login-box-msg">Registrarse</p>
 
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    {{ session('success') }}
+                </div>
+            @endif
+
             @if($errors->any())
                 <div class="alert alert-danger alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
@@ -33,7 +40,7 @@
             <form action="{{ route('register.post') }}" method="post">
                 @csrf
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Nombre completo" name="name" required>
+                    <input type="text" class="form-control" placeholder="Nombre/Usuario" name="name" value="{{ old('name') }}" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
                             <span class="fas fa-user"></span>
@@ -41,7 +48,7 @@
                     </div>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="email" class="form-control" placeholder="Email" name="email" required>
+                    <input type="email" class="form-control" placeholder="Email" name="email" value="{{ old('email') }}" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
                             <span class="fas fa-envelope"></span>
@@ -67,7 +74,7 @@
                 <div class="row">
                     <div class="col-12 mb-3">
                         <div class="icheck-primary">
-                            <input type="checkbox" id="agreeTerms" name="terms" value="agree">
+                            <input type="checkbox" id="agreeTerms" name="terms" value="agree" {{ old('terms') ? 'checked' : '' }}>
                             <label for="agreeTerms">Acepto los <a href="#">términos y condiciones</a></label>
                         </div>
                     </div>

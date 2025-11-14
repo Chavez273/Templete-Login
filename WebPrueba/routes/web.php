@@ -34,4 +34,4 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// ELIMINAR esta línea: require __DIR__.'/task_api_routes.php';
+

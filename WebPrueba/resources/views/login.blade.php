@@ -37,13 +37,14 @@
                 </div>
             @endif
 
-            <form action="{{ route('login') }}" method="post">
+            <form action="{{ route('login.post') }}" method="post">
                 @csrf
                 <div class="input-group mb-3">
-                    <input type="email" class="form-control" placeholder="Email" name="email" required>
+                    <!-- ELIMINADO: value="{{ old('email') }}" -->
+                    <input type="text" class="form-control" placeholder="Email/Usuario" name="email" required>
                     <div class="input-group-append">
                         <div class="input-group-text">
-                            <span class="fas fa-envelope"></span>
+                            <span class="fas fa-user"></span>
                         </div>
                     </div>
                 </div>
@@ -58,7 +59,7 @@
                 <div class="row">
                     <div class="col-8">
                         <div class="icheck-primary">
-                            <input type="checkbox" id="remember" name="remember">
+                            <input type="checkbox" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
                             <label for="remember">Recordar sesión</label>
                         </div>
                     </div>
@@ -91,5 +92,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+<script>
+// JavaScript para limpiar el campo de email/username cuando se muestre un error
+document.addEventListener('DOMContentLoaded', function() {
+    // Si hay errores en la página, limpiar el campo de email/username
+    @if($errors->any())
+        document.querySelector('input[name="email"]').value = '';
+    @endif
+});
+</script>
 </body>
 </html>
