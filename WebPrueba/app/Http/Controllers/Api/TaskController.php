@@ -13,8 +13,31 @@ class TaskController extends Controller
      */
     public function index()
     {
-        // Devolvemos todas las tareas como JSON
-        return Task::latest()->get();
+        try {
+            // Obtener todas las tareas con paginación
+            $tasks = Task::latest()->paginate(10);
+
+            return response()->json([
+                'success' => true,
+                'data' => $tasks->items(),
+                'pagination' => [
+                    'current_page' => $tasks->currentPage(),
+                    'last_page' => $tasks->lastPage(),
+                    'per_page' => $tasks->perPage(),
+                    'total' => $tasks->total(),
+                    'from' => $tasks->firstItem(),
+                    'to' => $tasks->lastItem(),
+                ],
+                'count' => $tasks->count()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al cargar las tareas',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -22,18 +45,31 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'due_date' => 'nullable|date',
-            'status' => 'required|in:pending,in_progress,completed',
-            'urgency' => 'required|in:Baja,Media,Alta',
-        ]);
+        try {
+            // Validar todos los campos que existen en tu BD
+            $validatedData = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'due_date' => 'nullable|date',
+                'status' => 'required|in:pending,in_progress,completed',
+                'urgency' => 'required|in:Baja,Media,Alta',
+            ]);
 
-        $task = Task::create($validatedData);
+            $task = Task::create($validatedData);
 
-        // Devolvemos la tarea creada y un código 201 (Created)
-        return response()->json($task, 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea creada correctamente',
+                'data' => $task
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al crear la tarea',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -41,9 +77,18 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        // Devolvemos la tarea individual como JSON
-        // Laravel automáticamente encontrará la Tarea gracias al Model Binding
-        return $task;
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $task
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al cargar la tarea',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -51,28 +96,51 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        $validatedData = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'due_date' => 'nullable|date',
-            'status' => 'required|in:pending,in_progress,completed',
-            'urgency' => 'required|in:Baja,Alta,Media',
-        ]);
+        try {
+            $validatedData = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'due_date' => 'nullable|date',
+                'status' => 'required|in:pending,in_progress,completed',
+                'urgency' => 'required|in:Baja,Media,Alta',
+            ]);
 
-        $task->update($validatedData);
+            $task->update($validatedData);
 
-        // Devolvemos la tarea actualizada
-        return response()->json($task);
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea actualizada correctamente',
+                'data' => $task
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al actualizar la tarea',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Elimina una tarea (Soft Delete).
+     * Elimina una tarea.
      */
     public function destroy(Task $task)
     {
-        $task->delete();
+        try {
+            $task->delete();
 
-        // Devolvemos una respuesta vacía con código 204 (No Content)
-        return response()->json(null, 204);
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea eliminada correctamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al eliminar la tarea',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

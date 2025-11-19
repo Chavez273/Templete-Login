@@ -8,24 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
     <style>
-        .pagination-custom .page-link {
-            color: #007bff;
-            border: 1px solid #dee2e6;
-        }
-        .pagination-custom .page-item.active .page-link {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        .pagination-custom .page-link:hover {
-            color: #0056b3;
-            background-color: #e9ecef;
-        }
-        .table-actions {
-            white-space: nowrap;
-        }
-        .status-badge {
-            font-size: 0.85em;
-        }
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -39,10 +21,22 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .table-actions {
+            white-space: nowrap;
+        }
+        .pagination-custom .page-link {
+            color: #007bff;
+            border: 1px solid #dee2e6;
+        }
+        .pagination-custom .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
     </style>
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
+    <!-- Navbar -->
     <nav class="main-header navbar navbar-expand navbar-white navbar-light">
         <ul class="navbar-nav">
             <li class="nav-item">
@@ -54,7 +48,6 @@
                 <a href="{{ route('dashboard') }}" class="nav-link">Inicio</a>
             </li>
         </ul>
-
         <ul class="navbar-nav ml-auto">
             <li class="nav-item dropdown">
                 <a class="nav-link" data-toggle="dropdown" href="#">
@@ -135,12 +128,20 @@
 
         <div class="content">
             <div class="container-fluid">
+                <!-- Alertas -->
                 <div class="alert alert-success alert-dismissible" id="success-alert" style="display: none;">
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                     <h5><i class="icon fas fa-check"></i> ¡Éxito!</h5>
                     <span id="success-message"></span>
                 </div>
 
+                <div class="alert alert-info alert-dismissible" id="info-alert" style="display: none;">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h5><i class="icon fas fa-info"></i> Información</h5>
+                    <span id="info-message"></span>
+                </div>
+
+                <!-- Tabla de Tareas -->
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Lista de Tareas</h3>
@@ -148,6 +149,9 @@
                             <a href="{{ route('api-tasks.create') }}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Nueva Tarea
                             </a>
+                            <button class="btn btn-success btn-sm" onclick="loadTasks()">
+                                <i class="fas fa-sync-alt"></i> Actualizar
+                            </button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -161,7 +165,7 @@
                             <div class="col-md-6 text-right">
                                 <div class="form-inline justify-content-end">
                                     <label for="perPage" class="mr-2">Mostrar:</label>
-                                    <select class="form-control form-control-sm" id="perPage">
+                                    <select class="form-control form-control-sm" id="perPage" onchange="changeItemsPerPage()">
                                         <option value="5">5</option>
                                         <option value="10" selected>10</option>
                                         <option value="25">25</option>
@@ -196,7 +200,7 @@
                             </table>
                         </div>
 
-                        <!-- Paginación Mejorada -->
+                        <!-- Paginación -->
                         <div class="row mt-4">
                             <div class="col-md-6">
                                 <p class="text-muted" id="page-info">
@@ -225,47 +229,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
-    // Token CSRF (¡MUY IMPORTANTE para que la API funcione!)
+    // Token CSRF
     const csrfToken = '{{ csrf_token() }}';
 
     // Variables globales para la paginación
-    let allTasks = [];
     let currentPage = 1;
     let itemsPerPage = 10;
     let totalPages = 1;
+    let totalTasks = 0;
 
-    // Opciones para los 'selects' (copiadas de tu Modelo Task)
+    // Opciones para los estados y urgencias
     const STATUS_OPTIONS = {
         'pending': 'Pendiente',
         'in_progress': 'En Progreso',
         'completed': 'Completada'
     };
+
     const URGENCY_OPTIONS = {
         'Baja': 'Baja',
         'Media': 'Media',
         'Alta': 'Alta'
     };
 
-    // ================================================
-    // FUNCIÓN DE FECHA CORREGIDA (Versión Final Definitiva)
-    // ================================================
+    // Función para formatear fecha
     function formatDate(dateString) {
-        if (!dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES');
+        } catch (e) {
             return 'N/A';
         }
-
-        const dateOnlyString = dateString.substring(0, 10);
-        const parts = dateOnlyString.split('-');
-
-        if (parts.length !== 3) {
-            console.warn('Formato de fecha inesperado:', dateOnlyString);
-            return 'Invalid Date';
-        }
-
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    // Función para generar la insignia de estado
+    // Función para generar badge de estado
     function getStatusBadge(status) {
         let badgeClass = 'badge-secondary';
         switch (status) {
@@ -273,10 +270,10 @@
             case 'in_progress': badgeClass = 'badge-info'; break;
             case 'completed': badgeClass = 'badge-success'; break;
         }
-        return `<span class="badge ${badgeClass} status-badge">${STATUS_OPTIONS[status] || 'Desconocido'}</span>`;
+        return `<span class="badge ${badgeClass}">${STATUS_OPTIONS[status] || 'Desconocido'}</span>`;
     }
 
-    // Función para generar la insignia de urgencia
+    // Función para generar badge de urgencia
     function getUrgencyBadge(urgency) {
         let badgeClass = 'badge-secondary';
         switch (urgency) {
@@ -284,14 +281,13 @@
             case 'Media': badgeClass = 'badge-warning'; break;
             case 'Alta': badgeClass = 'badge-danger'; break;
         }
-        return `<span class="badge ${badgeClass} status-badge">${URGENCY_OPTIONS[urgency] || 'Desconocida'}</span>`;
+        return `<span class="badge ${badgeClass}">${URGENCY_OPTIONS[urgency] || 'Desconocida'}</span>`;
     }
 
-    // --- FUNCIÓN PRINCIPAL: Cargar Tareas ---
-    async function loadTasks() {
+    // Cargar tareas desde API
+    async function loadTasks(page = 1) {
         const tableBody = document.getElementById('tasks-table-body');
         try {
-            // Mostrar estado de carga
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center py-4">
@@ -301,42 +297,65 @@
                 </tr>
             `;
 
-            // Llama a la ruta de la API que creamos
-            const response = await fetch('{{ route('api.tasks.index') }}');
-            if (!response.ok) throw new Error('Error al cargar tareas');
+            console.log(`🔍 Cargando tareas página ${page}...`);
 
-            allTasks = await response.json();
+            const response = await fetch(`/api/tasks?page=${page}&per_page=${itemsPerPage}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
 
-            // Actualizar paginación
-            updatePagination();
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
 
-            // Mostrar primera página
-            displayCurrentPage();
+            const result = await response.json();
+            console.log('📊 Datos recibidos:', result);
+
+            if (result.success && result.data) {
+                currentPage = result.pagination.current_page;
+                itemsPerPage = result.pagination.per_page;
+                totalPages = result.pagination.last_page;
+                totalTasks = result.pagination.total;
+
+                updatePaginationInfo(result.pagination);
+                displayTasks(result.data);
+                showInfoMessage(`✅ Se cargaron ${result.data.length} tareas correctamente`);
+            } else {
+                throw new Error(result.error || 'Error desconocido');
+            }
 
         } catch (error) {
-            console.error(error);
+            console.error('❌ Error:', error);
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center py-4 text-danger">
                         <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                        <p class="mb-0">Error al cargar las tareas.</p>
+                        <p class="mb-0">Error al cargar las tareas</p>
                         <small>${error.message}</small>
+                        <br>
+                        <button onclick="loadTasks()" class="btn btn-sm btn-primary mt-2">
+                            <i class="fas fa-redo"></i> Reintentar
+                        </button>
                     </td>
                 </tr>
             `;
         }
     }
 
-    // --- FUNCIÓN: Mostrar página actual ---
-    function displayCurrentPage() {
+    // Mostrar tareas en la tabla
+    function displayTasks(tasks) {
         const tableBody = document.getElementById('tasks-table-body');
 
-        if (allTasks.length === 0) {
+        if (!tasks || tasks.length === 0) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center py-4">
                         <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
-                        <p class="text-muted mb-0">No hay tareas registradas.</p>
+                        <p class="text-muted mb-0">No hay tareas registradas</p>
                         <a href="{{ route('api-tasks.create') }}" class="btn btn-primary btn-sm mt-2">
                             <i class="fas fa-plus"></i> Crear Primera Tarea
                         </a>
@@ -346,30 +365,19 @@
             return;
         }
 
-        // Calcular tareas para la página actual
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, allTasks.length);
-        const currentTasks = allTasks.slice(startIndex, endIndex);
-
         let html = '';
-        currentTasks.forEach(task => {
-            // URL de edición para la vista API
-            const editUrl = `{{ url('api-tasks') }}/${task.id}/edit`;
-
+        tasks.forEach(task => {
+            const editUrl = "{{ url('api-tasks') }}/" + task.id + "/edit";
             const description = task.description ?
-                `<span title="${task.description}">${task.description.length > 50 ? task.description.substring(0, 50) + '...' : task.description}</span>` :
+                (task.description.length > 50 ? task.description.substring(0, 50) + '...' : task.description) :
                 '<span class="text-muted">Sin descripción</span>';
-
-            const dueDate = task.due_date ?
-                `<span class="badge badge-light border">${formatDate(task.due_date)}</span>` :
-                '<span class="text-muted">N/A</span>';
 
             html += `
                 <tr id="task-row-${task.id}">
                     <td><strong>${task.id}</strong></td>
                     <td>${task.title}</td>
                     <td>${description}</td>
-                    <td>${dueDate}</td>
+                    <td>${formatDate(task.due_date)}</td>
                     <td>${getStatusBadge(task.status)}</td>
                     <td>${getUrgencyBadge(task.urgency)}</td>
                     <td class="table-actions text-center">
@@ -377,7 +385,7 @@
                             <a href="${editUrl}" class="btn btn-warning" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <button class="btn btn-danger btn-delete" data-id="${task.id}" title="Eliminar">
+                            <button class="btn btn-danger" onclick="deleteTask(${task.id})" title="Eliminar">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -388,36 +396,27 @@
         tableBody.innerHTML = html;
     }
 
-    // --- FUNCIÓN: Actualizar controles de paginación ---
-    function updatePagination() {
-        totalPages = Math.ceil(allTasks.length / itemsPerPage);
-
-        // Actualizar información de paginación
-        const startItem = allTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
-        const endItem = Math.min(currentPage * itemsPerPage, allTasks.length);
+    // Actualizar información de paginación
+    function updatePaginationInfo(pagination) {
+        const startItem = pagination.from || 0;
+        const endItem = pagination.to || 0;
 
         document.getElementById('pagination-info').innerHTML = `
-            Mostrando <strong>${startItem}</strong> a <strong>${endItem}</strong> de <strong>${allTasks.length}</strong> tareas
+            Mostrando <strong>${startItem}</strong> a <strong>${endItem}</strong> de <strong>${pagination.total}</strong> tareas
         `;
 
         document.getElementById('page-info').innerHTML = `
-            Página <strong>${currentPage}</strong> de <strong>${totalPages}</strong>
+            Página <strong>${pagination.current_page}</strong> de <strong>${pagination.last_page}</strong>
         `;
 
         // Generar controles de paginación
         const paginationControls = document.getElementById('pagination-controls');
-
-        if (totalPages <= 1) {
-            paginationControls.innerHTML = '';
-            return;
-        }
-
         let paginationHTML = '';
 
         // Botón Primera página
         paginationHTML += `
-            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="changePage(1)" aria-label="First">
+            <li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(1)" aria-label="First">
                     <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
             </li>
@@ -425,29 +424,29 @@
 
         // Botón Página anterior
         paginationHTML += `
-            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="changePage(${currentPage - 1})" aria-label="Previous">
+            <li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pagination.current_page - 1})" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
         `;
 
-        // Números de página (mostrar páginas alrededor de la actual)
-        const startPage = Math.max(1, currentPage - 2);
-        const endPage = Math.min(totalPages, currentPage + 2);
+        // Números de página
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.last_page, pagination.current_page + 2);
 
         for (let page = startPage; page <= endPage; page++) {
             paginationHTML += `
-                <li class="page-item ${page === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" onclick="changePage(${page})">${page}</a>
+                <li class="page-item ${page === pagination.current_page ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadTasks(${page})">${page}</a>
                 </li>
             `;
         }
 
         // Botón Página siguiente
         paginationHTML += `
-            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="changePage(${currentPage + 1})" aria-label="Next">
+            <li class="page-item ${pagination.current_page === pagination.last_page ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pagination.current_page + 1})" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
@@ -455,8 +454,8 @@
 
         // Botón Última página
         paginationHTML += `
-            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" onclick="changePage(${totalPages})" aria-label="Last">
+            <li class="page-item ${pagination.current_page === pagination.last_page ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadTasks(${pagination.last_page})" aria-label="Last">
                     <span aria-hidden="true">&raquo;&raquo;</span>
                 </a>
             </li>
@@ -465,101 +464,65 @@
         paginationControls.innerHTML = paginationHTML;
     }
 
-    // --- FUNCIÓN: Cambiar página ---
-    function changePage(page) {
-        if (page < 1 || page > totalPages || page === currentPage) return;
-
-        currentPage = page;
-        displayCurrentPage();
-        updatePagination();
-
-        // Scroll suave hacia arriba de la tabla
-        document.querySelector('.card-body').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    }
-
-    // --- FUNCIÓN: Cambiar items por página ---
+    // Cambiar items por página
     function changeItemsPerPage() {
         const select = document.getElementById('perPage');
         itemsPerPage = parseInt(select.value);
-        currentPage = 1; // Volver a la primera página
-        displayCurrentPage();
-        updatePagination();
+        currentPage = 1;
+        loadTasks(currentPage);
     }
 
-    // --- FUNCIÓN: Borrar Tarea ---
+    // Eliminar tarea
     async function deleteTask(taskId) {
         if (!confirm('¿Estás seguro de que deseas eliminar esta tarea?')) return;
 
         try {
-            const response = await fetch(`{{ url('api/tasks') }}/${taskId}`, {
+            console.log('🗑️ Eliminando tarea:', taskId);
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
                 }
             });
 
-            if (!response.ok) throw new Error('Error al eliminar la tarea');
+            const result = await response.json();
 
-            // Eliminar la tarea del array local
-            allTasks = allTasks.filter(task => task.id !== taskId);
-
-            // Si la página actual queda vacía, retroceder una página
-            if (allTasks.length > 0 && (currentPage - 1) * itemsPerPage >= allTasks.length) {
-                currentPage = Math.max(1, currentPage - 1);
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Error al eliminar tarea');
             }
 
-            // Actualizar la vista
-            displayCurrentPage();
-            updatePagination();
-
-            // Mostrar mensaje de éxito
-            document.getElementById('success-message').innerText = '¡Tarea eliminada exitosamente!';
-            document.getElementById('success-alert').style.display = 'block';
-
-            // Ocultar mensaje después de 5 segundos
-            setTimeout(() => {
-                document.getElementById('success-alert').style.display = 'none';
-            }, 5000);
+            showSuccessMessage('✅ Tarea eliminada correctamente');
+            loadTasks(currentPage);
 
         } catch (error) {
-            console.error(error);
-            alert('Error al eliminar la tarea.');
+            console.error('❌ Error eliminar:', error);
+            alert('Error al eliminar la tarea: ' + error.message);
         }
     }
 
-    // --- EVENT LISTENERS ---
-
-    // 1. Cargar tareas cuando el documento esté listo
-    document.addEventListener('DOMContentLoaded', function() {
-        loadTasks();
-
-        // Configurar evento para el selector de items por página
-        document.getElementById('perPage').addEventListener('change', changeItemsPerPage);
-    });
-
-    // 2. Escuchar clics en los botones de borrado (Delegación de eventos)
-    document.getElementById('tasks-table-body').addEventListener('click', function(event) {
-        const deleteButton = event.target.closest('.btn-delete');
-        if (deleteButton) {
-            const taskId = deleteButton.dataset.id;
-            deleteTask(taskId);
-        }
-    });
-
-    // Auto-ocultar alertas después de 5 segundos
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            const successAlert = document.getElementById('success-alert');
-            if (successAlert.style.display !== 'none') {
-                successAlert.style.display = 'none';
-            }
+    function showSuccessMessage(message) {
+        document.getElementById('success-message').textContent = message;
+        document.getElementById('success-alert').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('success-alert').style.display = 'none';
         }, 5000);
-    });
+    }
 
+    function showInfoMessage(message) {
+        document.getElementById('info-message').textContent = message;
+        document.getElementById('info-alert').style.display = 'block';
+        setTimeout(() => {
+            document.getElementById('info-alert').style.display = 'none';
+        }, 4000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Iniciando aplicación Tareas API...');
+        loadTasks();
+    });
 </script>
 </body>
 </html>

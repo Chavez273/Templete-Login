@@ -26,12 +26,12 @@ Route::middleware('auth')->group(function () {
 
     // Rutas para la interfaz de API (vistas)
     Route::prefix('api-tasks')->name('api-tasks.')->group(function() {
-        Route::get('/', function() { return view('tasks-api.index'); })->name('index');
+        Route::get('/', function() {return view('tasks-api.index');})->name('index');
+
         Route::get('/create', function() {return view('tasks-api.create');})->name('create');
-        Route::get('/{task}/edit', function(Task $task) {
-            return view('tasks-api.edit', compact('task'));
-        })->name('edit');
+
+        Route::get('/{id}/edit', function($id) {$task = Task::findOrFail($id);
+            return view('tasks-api.edit', compact('task')); })->name('edit');
     });
 });
-
 
