@@ -40,7 +40,6 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Determinar si el campo es email o name
         $loginType = filter_var($request->email, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
 
         $user = User::where($loginType, $request->email)->first();
@@ -62,11 +61,27 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        // SOLUCIÓN: Método corregido para el logout
+        try {
+            // Verificar que el usuario esté autenticado
+            if ($request->user()) {
+                // Eliminar el token actual
+                $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'Sesión cerrada correctamente'
-        ]);
+                return response()->json([
+                    'message' => 'Sesión cerrada correctamente'
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'No hay usuario autenticado'
+                ], 401);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al cerrar sesión',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function user(Request $request)

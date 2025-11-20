@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 // Rutas públicas de autenticación
 Route::post('/register', [AuthController::class, 'register'])->name('api.register');
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
+Route::post('/logout', [AuthController::class, 'logout']);
 
 // Rutas de tareas con nombres
 Route::get('/tasks', [TaskController::class, 'index'])->name('api.tasks.index');
