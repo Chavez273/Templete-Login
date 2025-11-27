@@ -5,15 +5,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\AuthController;
 
-// Rutas públicas de autenticación
 Route::post('/register', [AuthController::class, 'register'])->name('api.register');
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
-
-// SOLUCIÓN ALTERNATIVA: Middleware personalizado que acepta ambos
-Route::middleware(['web', 'auth:sanctum'])->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-
-    // Rutas de tareas
     Route::get('/tasks', [TaskController::class, 'index'])->name('api.tasks.index');
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('api.tasks.show');
     Route::post('/tasks', [TaskController::class, 'store'])->name('api.tasks.store');
